@@ -6,6 +6,8 @@ import talib as ta
 import torch
 import torch.nn as nn
 import torch.optim as optim
+import matplotlib.pyplot as plt
+
 
 class ActorCriticModel(nn.Module):
     def __init__(self, input_dim, output_dim):
@@ -73,7 +75,7 @@ class MultiStockTradingEnv(gym.Env):
 
     def step(self, action_probs):
         actions = np.random.choice(np.arange(-self.max_shares, self.max_shares+1), size=self.num_stocks, p=action_probs)
-        actions = actions / self.max_shares  # Normalize the actions to [-1, 1]
+        actions = actions / self.max_shares  # Normalizing the actions to [-1, 1]
 
         # Updating stock prices based on the actions
         self.stock_prices *= (1 + actions)
@@ -133,5 +135,5 @@ class MultiStockTradingEnv(gym.Env):
 data = pd.read_csv('^NSEI.csv', parse_dates=['Date'])
 
 # environment
-max_shares = 1000 # taking the 100 share for now!
+max_shares = 1000 # taking the 100 shares for now!
 env = MultiStockTradingEnv(data, max_shares)
