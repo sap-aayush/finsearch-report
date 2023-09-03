@@ -16,26 +16,30 @@ from pmdarima.arima import auto_arima
 from sklearn.metrics import mean_squared_error, mean_absolute_error
 import math
 
-#getting the stock prices directly
+
+#getting the stock prices directly from the yfinance library of the python
 import yfinance as yf
-stock_data = yf.download('^N100', start='2023-07-01', end='2023-08-15')
+stock_data = yf.download('^N100', start='2023-01-01', end='2023-08-15')
 stock_data
 
-# seeing the closing prices of the stocks of each data
+
+# viewing the closing prices of the stocks of each data
 df_close  = stock_data.Close
 
-#plotting the close price
+
+#plotting the close price of the stocks downloaded via the matplotlib library !
 plt.figure(figsize=(10,6))
 plt.grid(True)
 plt.xlabel('Date')
 plt.ylabel('Close Prices')
 plt.plot(stock_data['Close'])
-plt.title('Apple closing price')
+plt.title('Nifty 100 closing price')
 plt.show()
 
 
 # using the dickey fuller test to check if there is stationarity in the data ?? 
 def test_stationarity(df_close):
+    # Checking for stationarity
     adf = adfuller(df_close)
 
     for key, value in adf[4].items():
@@ -46,10 +50,11 @@ def test_stationarity(df_close):
     else:
         print('The data is not stationary')
 
+
 test_stationarity(df_close)
 
-result = seasonal_decompose(df_close, period=100 ,model='additive')
 
+result = seasonal_decompose(df_close, period=10 ,model='additive')
 fig = plt.figure()
 fig = result.plot()
 fig.set_size_inches(10, 8)
@@ -60,11 +65,10 @@ plt.show()
 from pylab import rcParams
 
 rcParams['figure.figsize'] = 10, 6
-df_log = np.log(df_close)
+df_log = df_close
 
 moving_avg = df_log.rolling(12).mean()
 std_dev = df_log.rolling(12).std()
-
 
 plt.legend(loc='best')
 plt.title('Moving Average')
@@ -73,6 +77,10 @@ plt.plot(moving_avg, color="red", label = "Mean")
 plt.legend()
 plt.show()
 
+'''
+Now creating an ARIMA model and will train it with the closing price of the stock on the train data. First splitting the data into training and test set
+
+'''
 
 train_data, test_data = df_log[3:int(len(df_log)*0.9)], df_log[int(len(df_log)*0.9):]
 
@@ -83,6 +91,9 @@ plt.ylabel('Closing Prices')
 plt.plot(df_log, 'green', label='Train data')
 plt.plot(test_data, 'blue', label='Test data')
 plt.legend()
+
+
+# Now chosing the parameters p,q,d for ARIMA model. Using the Auto ARIMA to get the best parameters without even plotting ACF and PACF graphs.
 
 model_autoARIMA = auto_arima(train_data, start_p=0, start_q=0,
                       test='adf',       # use adftest to find optimal 'd'
@@ -101,21 +112,29 @@ model_autoARIMA.plot_diagnostics(figsize=(15,8))
 plt.show()
 
 
+#Auto ARIMA model provided the value of p,d, and q and using these values to train the arima model.
+
+# training the Arima Model with Order (p , d , q)
 def train(df_close , p , d , q):
 
   model = ARIMA(df_close ,order=(p, d, q))
   model = model.fit()
   return model
 
+
+# Forecasting the p,d,f values obtained from the above
 p = 1
 q = 5
 d = 2
-
 model = train(df_close.values , p , d , q)
-
 fc = model.forecast(321, alpha=0.05)
+
+
+# Making as a pandas series
+fc = model.forecast(len(test_data), alpha=0.05)
 fc_series = pd.Series(fc, index=test_data.index)
 fc_series
+
 
 plt.figure(figsize=(10,5), dpi=100)
 plt.plot(train_data, label='training data')
